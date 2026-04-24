@@ -165,7 +165,7 @@ Pipeline steps:
 
 - Persistent database (SQL/NoSQL) - The in-memory repository suffices for the challenge scope and allows for faster development and testing. In a production scenario, I would implement a proper data access layer with an ORM and a relational database.
 - Authentication/authorization - This was not specified in the requirements and would add unnecessary complexity for the challenge scope.
-- Full UX refinement in Blazor - The Blazor frontend focuses on functionality and API integration rather than polished UI/UX, given the challenge scope and time constraints. In a production scenario, I would invest more in responsive design, accessibility, and user experience improvements.
+- Full UX refinement in Blazor - The Blazor frontend focuses on functionality and API integration rather than polished UI/UX, given the challenge scope and time constraints.
 
 
 # Author

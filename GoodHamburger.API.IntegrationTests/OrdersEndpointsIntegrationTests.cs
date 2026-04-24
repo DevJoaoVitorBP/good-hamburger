@@ -49,7 +49,7 @@ public sealed class OrdersEndpointsIntegrationTests
     [Fact]
     public async Task PostOrder_ThenGetById_ShouldReturnCreatedOrder()
     {
-        HttpResponseMessage createResponse = await Client.PostAsJsonAsync("/api/orders", new UpsertOrderRequest([1, 4, 5]));
+        HttpResponseMessage createResponse = await Client.PostAsJsonAsync("/api/orders", new CreateOrderRequest([1, 4, 5]));
 
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
 
@@ -71,12 +71,12 @@ public sealed class OrdersEndpointsIntegrationTests
     [Fact]
     public async Task PutOrder_ShouldUpdateTotals()
     {
-        HttpResponseMessage createResponse = await Client.PostAsJsonAsync("/api/orders", new UpsertOrderRequest([1, 4, 5]));
+        HttpResponseMessage createResponse = await Client.PostAsJsonAsync("/api/orders", new CreateOrderRequest([1, 4, 5]));
         OrderResponse? created = await createResponse.Content.ReadFromJsonAsync<OrderResponse>();
 
         Assert.NotNull(created);
 
-        HttpResponseMessage updateResponse = await Client.PutAsJsonAsync($"/api/orders/{created.Id}", new UpsertOrderRequest([1, 5]));
+        HttpResponseMessage updateResponse = await Client.PutAsJsonAsync($"/api/orders/{created.Id}", new UpdateOrderRequest([1, 5]));
 
         Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
 
@@ -90,7 +90,7 @@ public sealed class OrdersEndpointsIntegrationTests
     public async Task DeleteOrder_ShouldReturnNoContent_AndGetByIdShouldReturnNotFound()
     {
 
-        HttpResponseMessage createResponse = await Client.PostAsJsonAsync("/api/orders", new UpsertOrderRequest([1, 4]));
+        HttpResponseMessage createResponse = await Client.PostAsJsonAsync("/api/orders", new CreateOrderRequest([1, 4]));
         OrderResponse? created = await createResponse.Content.ReadFromJsonAsync<OrderResponse>();
 
         Assert.NotNull(created);
@@ -107,7 +107,7 @@ public sealed class OrdersEndpointsIntegrationTests
     [Fact]
     public async Task PostOrder_WithDuplicatedItems_ShouldReturnBadRequest()
     {
-        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/orders", new UpsertOrderRequest([1, 1]));
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/orders", new CreateOrderRequest([1, 1]));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.True(response.Headers.Contains(CorrelationHeader));
@@ -144,7 +144,8 @@ public sealed class OrdersEndpointsIntegrationTests
         }
     }
 
-    private sealed record UpsertOrderRequest(IReadOnlyCollection<int> ItemIds);
+    private sealed record CreateOrderRequest(IReadOnlyCollection<int> ItemIds);
+    private sealed record UpdateOrderRequest(IReadOnlyCollection<int> ItemIds);
 
     private sealed record MenuItemResponse(int Id, string Name, string Category, decimal Price);
 

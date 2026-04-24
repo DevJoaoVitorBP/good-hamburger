@@ -14,12 +14,23 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
         catch (BusinessRuleValidationException exception)
         {
             logger.LogWarning(exception, "Business validation failed for {Method} {Path}", context.Request.Method, context.Request.Path);
-            await WriteProblemDetailsAsync(context, StatusCodes.Status400BadRequest, "Invalid order", exception.Message);
+            await WriteProblemDetailsAsync(context, StatusCodes.Status400BadRequest, "Business rule validation failed", exception.Message);
         }
         catch (ResourceNotFoundException exception)
         {
             logger.LogWarning(exception, "Resource was not found for {Method} {Path}", context.Request.Method, context.Request.Path);
             await WriteProblemDetailsAsync(context, StatusCodes.Status404NotFound, "Resource not found", exception.Message);
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Unexpected error for {Method} {Path}", context.Request.Method, context.Request.Path);
+
+            await WriteProblemDetailsAsync(
+                context,
+                StatusCodes.Status500InternalServerError,
+                "Internal server error",
+                "An unexpected error occurred. Please try again."
+            );
         }
     }
 

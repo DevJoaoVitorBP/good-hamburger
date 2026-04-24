@@ -1,6 +1,6 @@
 namespace GoodHamburger.API.Contracts;
 
-public sealed class UpsertOrderRequest
+public sealed class CreateOrderRequest
 {
     public IReadOnlyCollection<int> ItemIds { get; init; } = [];
 }
