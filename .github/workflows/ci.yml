@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master", "develop"]
+  pull_request:
+    branches: ["main", "master", "develop"]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+
+      - name: Restore
+        run: |
+          dotnet restore GoodHamburger.Domain/GoodHamburger.Domain.csproj
+          dotnet restore GoodHamburger.Application/GoodHamburger.Application.csproj
+          dotnet restore GoodHamburger.Infrastructure/GoodHamburger.Infrastructure.csproj
+          dotnet restore GoodHamburger.API/GoodHamburger.API.csproj
+          dotnet restore GoodHamburger.API.IntegrationTests/GoodHamburger.API.IntegrationTests.csproj
+          dotnet restore GoodHamburger.Web/GoodHamburger.Web.csproj
+          dotnet restore GoodHamburguer.Test/GoodHamburguer.Test.csproj
+
+      - name: Build
+        run: |
+          dotnet build GoodHamburger.Domain/GoodHamburger.Domain.csproj --configuration Release --no-restore
+          dotnet build GoodHamburger.Application/GoodHamburger.Application.csproj --configuration Release --no-restore
+          dotnet build GoodHamburger.Infrastructure/GoodHamburger.Infrastructure.csproj --configuration Release --no-restore
+          dotnet build GoodHamburger.API/GoodHamburger.API.csproj --configuration Release --no-restore
+          dotnet build GoodHamburger.API.IntegrationTests/GoodHamburger.API.IntegrationTests.csproj --configuration Release --no-restore
+          dotnet build GoodHamburger.Web/GoodHamburger.Web.csproj --configuration Release --no-restore
+          dotnet build GoodHamburguer.Test/GoodHamburguer.Test.csproj --configuration Release --no-restore
+
+      - name: Test - business rules
+        run: dotnet test GoodHamburguer.Test/GoodHamburguer.Test.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --results-directory TestResults --collect:"XPlat Code Coverage"
+
+      - name: Test - API integration
+        run: dotnet test GoodHamburger.API.IntegrationTests/GoodHamburger.API.IntegrationTests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=integration-test-results.trx" --results-directory TestResults --collect:"XPlat Code Coverage"
+
+      - name: Upload test and coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-and-coverage
+          path: TestResults

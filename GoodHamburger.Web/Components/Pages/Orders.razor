@@ -1,0 +1,130 @@
+@page "/orders"
+@rendermode InteractiveServer
+
+<PageTitle>Orders</PageTitle>
+
+<div class="orders-header mb-4">
+    <h1 class="mb-1">Orders</h1>
+    <p class="text-muted mb-0">Create, update, and track orders with automatic discount rules.</p>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(_successMessage))
+{
+    <div class="alert alert-success" role="alert">@_successMessage</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Create Order</h5>
+                <p class="text-muted">Select menu items and submit.</p>
+
+                @if (_menuItems.Count == 0)
+                {
+                    <p><em>Loading menu...</em></p>
+                }
+                else
+                {
+                    <div class="d-grid gap-2">
+                        @foreach (var item in _menuItems.OrderBy(i => i.Category).ThenBy(i => i.Name))
+                        {
+                            <label class="form-check-label border rounded p-2">
+                                <input class="form-check-input me-2" type="checkbox" checked="@_createItemIds.Contains(item.Id)" @onchange="(args) => ToggleCreateSelection(item.Id, args)" />
+                                <strong>@item.Name</strong>
+                                <span class="text-muted">(@item.Category) - @FormatCurrency(item.Price)</span>
+                            </label>
+                        }
+                    </div>
+
+                    <button type="button" class="btn btn-primary mt-3" disabled="@_isBusy" @onclick="CreateOrderAsync">Create Order</button>
+                }
+            </div>
+        </div>
+
+        <div class="card mt-4 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Update Order</h5>
+
+                <div class="mb-3">
+                    <label class="form-label">Order ID</label>
+                    <div class="input-group">
+                        <input class="form-control" type="number" min="1" @bind="_updateOrderId" @bind:event="oninput" />
+                        <button type="button" class="btn btn-outline-secondary" disabled="@_isBusy" @onclick="LoadOrderForEditAsync">Load</button>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    @foreach (var item in _menuItems.OrderBy(i => i.Category).ThenBy(i => i.Name))
+                    {
+                        <label class="form-check-label border rounded p-2">
+                            <input class="form-check-input me-2" type="checkbox" checked="@_updateItemIds.Contains(item.Id)" @onchange="(args) => ToggleUpdateSelection(item.Id, args)" />
+                            <strong>@item.Name</strong>
+                            <span class="text-muted">(@item.Category) - @FormatCurrency(item.Price)</span>
+                        </label>
+                    }
+                </div>
+
+                <button type="button" class="btn btn-warning mt-3" disabled="@(_isBusy || _updateOrderId <= 0 || _updateItemIds.Count == 0)" @onclick="UpdateOrderAsync">Update</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Order List <span class="badge text-bg-light ms-2">@_orders.Count</span></h5>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@_isBusy" @onclick="LoadDataAsync">Refresh</button>
+                </div>
+
+                @if (_isBusy && _orders.Count == 0)
+                {
+                    <p class="mt-3"><em>Loading orders...</em></p>
+                }
+                else if (_orders.Count == 0)
+                {
+                    <p class="mt-3"><em>No orders yet.</em></p>
+                }
+                else
+                {
+                    <div class="table-responsive mt-3">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Items</th>
+                                    <th>Created at</th>
+                                    <th>Updated at</th>
+                                    <th>Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in _orders.OrderByDescending(o => o.Id))
+                                {
+                                    <tr>
+                                        <td>@order.Id</td>
+                                        <td>@string.Join(", ", order.Items.Select(i => i.Name))</td>
+                                        <td>@FormatDateTime(order.CreatedAt)</td>
+                                        <td>@FormatNullableDateTime(order.UpdatedAt)</td>
+                                        <td>@FormatCurrency(order.Total)</td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-sm btn-outline-primary me-2" disabled="@_isBusy" @onclick="() => StartEdit(order)">Edit</button>
+                                            <button type="button" class="btn btn-sm btn-danger" disabled="@_isBusy" @onclick="() => DeleteOrderAsync(order.Id)">Delete</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

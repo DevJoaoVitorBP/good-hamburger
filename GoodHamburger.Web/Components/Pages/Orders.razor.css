@@ -1,0 +1,19 @@
+.orders-header h1 {
+    letter-spacing: 0.2px;
+}
+
+.card {
+    border: 1px solid #e9ecef;
+}
+
+.card-title {
+    font-weight: 600;
+}
+
+.table thead th {
+    white-space: nowrap;
+}
+
+.form-check-label {
+    cursor: pointer;
+}

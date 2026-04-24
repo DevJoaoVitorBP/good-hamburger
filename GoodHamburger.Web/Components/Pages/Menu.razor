@@ -1,0 +1,70 @@
+@page "/menu"
+
+<PageTitle>Menu</PageTitle>
+
+<div class="menu-header mb-4">
+    <h1 class="mb-1">Menu</h1>
+    <p class="text-muted mb-0">Browse available items and their prices.</p>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">
+                Menu items
+                <span class="badge text-bg-light ms-2">@_items.Count</span>
+            </h5>
+
+            <button type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    disabled="@_isBusy"
+                    @onclick="LoadMenuAsync">
+                Refresh
+            </button>
+        </div>
+
+        @if (_isBusy && _items.Count == 0)
+        {
+            <p class="mb-0"><em>Loading menu...</em></p>
+        }
+        else if (_items.Count > 0)
+        {
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th class="text-end">Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in _items.OrderBy(i => i.Id))
+                        {
+                            <tr>
+                                <td>@item.Id</td>
+                                <td><strong>@item.Name</strong></td>
+                                <td>
+                                    <span class="badge text-bg-light border">
+                                        @item.Category
+                                    </span>
+                                </td>
+                                <td class="text-end">@FormatCurrency(item.Price)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else if (string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <p class="mb-0"><em>No menu items available.</em></p>
+        }
+    </div>
+</div>
