@@ -15,65 +15,206 @@ The solution implements:
 - GitHub Actions CI pipeline
 - Structured logging with correlation ID support
 
-## Solution Structure
+## Architecture
 
-- `GoodHamburger.API` → REST API layer (controllers + middleware)
-- `GoodHamburger.Application` → use cases, services, contracts, business orchestration
-- `GoodHamburger.Domain` → entities and enums
-- `GoodHamburger.Infrastructure` → in-memory repository and static menu catalog
-- `GoodHamburger.Web` → Blazor frontend
-- `GoodHamburger.Test` → business rule automated tests
-- `GoodHamburger.API.IntegrationTests` → API integration tests for REST endpoints
+The solution follows a layered architecture (Clean Architecture inspired):
 
-## Business Rules
+| Layer | Responsibility |
+|------|--------------|
+| API | HTTP layer (controllers + middleware) |
+| Application | Business orchestration and use cases |
+| Domain | Core entities and rules |
+| Infrastructure | Data access (in-memory) + catalog |
+| Web (Blazor) | Frontend |
+| Tests | Unit and integration tests |
+
+### Projects
+
+- GoodHamburger.API  
+- GoodHamburger.Application  
+- GoodHamburger.Domain  
+- GoodHamburger.Infrastructure  
+- GoodHamburger.Web  
+- GoodHamburger.Test  
+- GoodHamburger.API.IntegrationTests  
+
+### Business Rules
 
 ### Menu
 
-- Sandwiches:
-  - `1` - X Burger - `5.00`
-  - `2` - X Egg - `4.50`
-  - `3` - X Bacon - `7.00`
-- Sides:
-  - `4` - French fries - `2.00`
-  - `5` - Soda - `2.50`
+| ID | Item | Price |
+|----|------|------|
+| 1 | X Burger | 5.00 |
+| 2 | X Egg | 4.50 |
+| 3 | X Bacon | 7.00 |
+| 4 | French Fries | 2.00 |
+| 5 | Soda | 2.50 |
+
 
 ### Discounts
 
-- Sandwich + fries + soda → `20%`
-- Sandwich + soda → `15%`
-- Sandwich + fries → `10%`
+| Combination | Discount |
+|------------|---------|
+| Sandwich + Fries + Soda | 20% |
+| Sandwich + Soda | 15% |
+| Sandwich + Fries | 10% |
+
 
 ### Validations
 
-- Order must contain exactly one sandwich
-- Order can contain at most one fries
-- Order can contain at most one soda
-- Duplicated items are rejected
-- Unknown item IDs are rejected
+- Must contain exactly 1 sandwich  
+- Max 1 fries  
+- Max 1 soda  
+- Duplicated items are rejected  
+- Unknown item IDs are rejected 
 
-## API Endpoints
+## API
 
 Base route: `/api`
 
+---
+
 ### Menu
 
-- `GET /api/menu`
+```
+GET /api/menu
+```
+
+---
 
 ### Orders
 
-- `GET /api/orders`
-- `GET /api/orders/{id}`
-- `POST /api/orders`
-- `PUT /api/orders/{id}`
-- `DELETE /api/orders/{id}`
+#### Get all orders
 
-### Request Payload (create/update)
+```
+GET /api/orders
+```
+
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "items": [
+      {
+        "id": 1,
+        "name": "X Burger",
+        "category": "Sandwich",
+        "price": 5.00
+      }
+    ],
+    "subtotal": 5.00,
+    "discountPercentage": 0,
+    "discountAmount": 0,
+    "total": 5.00,
+    "createdAt": "2026-04-25T16:32:58.806Z",
+    "updatedAt": "2026-04-25T16:32:58.806Z"
+  }
+]
+```
+
+---
+
+#### Get order by ID
+
+```
+GET /api/orders/{id}
+```
+
+Responses:
+- 200 OK  
+- 404 Not Found  
+
+---
+
+#### Create order
+
+```
+POST /api/orders
+```
+
+Request:
 
 ```json
 {
   "itemIds": [1, 4, 5]
 }
 ```
+
+Response:
+- 201 Created  
+
+---
+
+#### Update order
+
+```
+PUT /api/orders/{id}
+```
+
+Request:
+
+```json
+{
+  "itemIds": [1, 5]
+}
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "items": [
+    {
+      "id": 1,
+      "name": "X Burger",
+      "category": "Sandwich",
+      "price": 5.00
+    },
+    {
+      "id": 5,
+      "name": "Soda",
+      "category": "Drink",
+      "price": 2.50
+    }
+  ],
+  "subtotal": 7.50,
+  "discountPercentage": 15,
+  "discountAmount": 1.125,
+  "total": 6.375,
+  "createdAt": "2026-04-25T16:33:32.954Z",
+  "updatedAt": "2026-04-25T16:33:32.954Z"
+}
+```
+
+---
+
+#### Delete order
+
+```
+DELETE /api/orders/{id}
+```
+
+Response:
+- 204 No Content  
+- 404 Not Found  
+
+---
+
+### Error Response Pattern
+
+```json
+{
+  "type": "string",
+  "title": "string",
+  "status": 400,
+  "detail": "string",
+  "instance": "string"
+}
+```
+
 
 ## Security
 
