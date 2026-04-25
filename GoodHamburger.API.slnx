@@ -4,6 +4,6 @@
   <Project Path="GoodHamburger.Application/GoodHamburger.Application.csproj" />
   <Project Path="GoodHamburger.Domain/GoodHamburger.Domain.csproj" />
   <Project Path="GoodHamburger.Infrastructure/GoodHamburger.Infrastructure.csproj" />
+  <Project Path="GoodHamburger.Test/GoodHamburger.Test.csproj" />
   <Project Path="GoodHamburger.Web/GoodHamburger.Web.csproj" Id="15d63013-bbb5-4dd4-be5d-fb7818485e27" />
-  <Project Path="GoodHamburguer.Test/GoodHamburguer.Test.csproj" />
 </Solution>
