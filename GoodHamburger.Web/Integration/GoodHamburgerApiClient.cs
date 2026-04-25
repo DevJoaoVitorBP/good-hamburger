@@ -1,94 +1,103 @@
 using System.Net;
-using System.Net.Http.Json;
+using GoodHamburger.Web.Integration.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoodHamburger.Web.Integration;
 
 public sealed class GoodHamburgerApiClient(HttpClient httpClient)
 {
-    public async Task<IReadOnlyCollection<MenuItemResponse>> GetMenuAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<MenuItemResponse>> GetMenuAsync(CancellationToken ct = default)
     {
-        IReadOnlyCollection<MenuItemResponse>? result = await httpClient.GetFromJsonAsync<IReadOnlyCollection<MenuItemResponse>>("api/menu", cancellationToken);
-        return result ?? [];
+        return await GetCollectionAsync<MenuItemResponse>("api/menu", ct);
     }
 
-    public async Task<IReadOnlyCollection<OrderResponse>> GetOrdersAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<OrderResponse>> GetOrdersAsync(CancellationToken ct = default)
     {
-        HttpResponseMessage response = await httpClient.GetAsync("api/orders", cancellationToken);
+        return await GetCollectionAsync<OrderResponse>("api/orders", ct);
+    }
+
+    public async Task<OrderResponse?> GetOrderByIdAsync(int orderId, CancellationToken ct = default)
+    {
+        return await GetAsync<OrderResponse>($"api/orders/{orderId}", ct);
+    }
+
+    public async Task<OrderResponse> CreateOrderAsync(IReadOnlyCollection<int> itemIds, CancellationToken ct = default)
+    {
+        return await SendAsync<OrderResponse>(
+            HttpMethod.Post,
+            "api/orders",
+            new CreateOrUpdateOrderRequest(itemIds),
+            ct);
+    }
+
+    public async Task<OrderResponse> UpdateOrderAsync(int orderId, IReadOnlyCollection<int> itemIds, CancellationToken ct = default)
+    {
+        return await SendAsync<OrderResponse>(
+            HttpMethod.Put,
+            $"api/orders/{orderId}",
+            new CreateOrUpdateOrderRequest(itemIds),
+            ct);
+    }
+
+    public async Task DeleteOrderAsync(int orderId, CancellationToken ct = default)
+    {
+        HttpResponseMessage response = await httpClient.DeleteAsync($"api/orders/{orderId}", ct);
+        await EnsureSuccessAsync(response, ct);
+    }
+
+    private async Task<IReadOnlyCollection<T>> GetCollectionAsync<T>(string url, CancellationToken ct)
+    {
+        IReadOnlyCollection<T>? result = await GetAsync<IReadOnlyCollection<T>>(url, ct);
+        return result ?? Array.Empty<T>();
+    }
+
+    private async Task<T?> GetAsync<T>(string url, CancellationToken ct)
+    {
+        HttpResponseMessage response = await httpClient.GetAsync(url, ct);
+
         if (response.StatusCode == HttpStatusCode.NotFound)
-        {
-            return [];
-        }
+            return default;
 
-        await EnsureSuccessAsync(response, cancellationToken);
+        await EnsureSuccessAsync(response, ct);
 
-        IReadOnlyCollection<OrderResponse>? result = await response.Content.ReadFromJsonAsync<IReadOnlyCollection<OrderResponse>>(cancellationToken);
-        return result ?? [];
+        return await response.Content.ReadFromJsonAsync<T>(ct);
     }
 
-    public async Task<OrderResponse?> GetOrderByIdAsync(int orderId, CancellationToken cancellationToken = default)
+    private async Task<T> SendAsync<T>(HttpMethod method, string url, object body, CancellationToken ct)
     {
-        HttpResponseMessage response = await httpClient.GetAsync($"api/orders/{orderId}", cancellationToken);
-        if (response.StatusCode == HttpStatusCode.NotFound)
+        using HttpRequestMessage request = new HttpRequestMessage(method, url)
         {
-            return null;
-        }
+            Content = JsonContent.Create(body)
+        };
 
-        await EnsureSuccessAsync(response, cancellationToken);
+        HttpResponseMessage response = await httpClient.SendAsync(request, ct);
 
-        return await response.Content.ReadFromJsonAsync<OrderResponse>(cancellationToken);
-    }
+        await EnsureSuccessAsync(response, ct);
 
-    public async Task<OrderResponse> CreateOrderAsync(IReadOnlyCollection<int> itemIds, CancellationToken cancellationToken = default)
-    {
-        HttpResponseMessage response = await httpClient.PostAsJsonAsync("api/orders", new CreateOrUpdateOrderRequest(itemIds), cancellationToken);
-        await EnsureSuccessAsync(response, cancellationToken);
+        T? result = await response.Content.ReadFromJsonAsync<T>(ct);
 
-        OrderResponse? result = await response.Content.ReadFromJsonAsync<OrderResponse>(cancellationToken);
         return result ?? throw new InvalidOperationException("The API returned an empty response.");
     }
 
-    public async Task<OrderResponse> UpdateOrderAsync(int orderId, IReadOnlyCollection<int> itemIds, CancellationToken cancellationToken = default)
-    {
-        HttpResponseMessage response = await httpClient.PutAsJsonAsync($"api/orders/{orderId}", new CreateOrUpdateOrderRequest(itemIds), cancellationToken);
-        await EnsureSuccessAsync(response, cancellationToken);
-
-        OrderResponse? result = await response.Content.ReadFromJsonAsync<OrderResponse>(cancellationToken);
-        return result ?? throw new InvalidOperationException("The API returned an empty response.");
-    }
-
-    public async Task DeleteOrderAsync(int orderId, CancellationToken cancellationToken = default)
-    {
-        HttpResponseMessage response = await httpClient.DeleteAsync($"api/orders/{orderId}", cancellationToken);
-        await EnsureSuccessAsync(response, cancellationToken);
-    }
-
-    private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken ct)
     {
         if (response.IsSuccessStatusCode)
-        {
             return;
-        }
 
-        ProblemDetails? problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>(cancellationToken);
-        string message = problemDetails?.Detail ?? problemDetails?.Title ?? $"The API call failed with status code {(int)response.StatusCode}.";
+        string message;
+
+        try
+        {
+            ProblemDetails? problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(ct);
+            message = problem?.Detail
+                      ?? problem?.Title
+                      ?? $"Request failed with status {(int)response.StatusCode}.";
+        }
+        catch
+        {
+            message = $"Request failed with status {(int)response.StatusCode}.";
+        }
 
         throw new InvalidOperationException(message);
     }
-
-    public sealed record MenuItemResponse(int Id, string Name, string Category, decimal Price);
-
-    public sealed record OrderItemResponse(int Id, string Name, string Category, decimal Price);
-
-    public sealed record OrderResponse(
-        int Id,
-        IReadOnlyCollection<OrderItemResponse> Items,
-        decimal Subtotal,
-        decimal DiscountPercentage,
-        decimal DiscountAmount,
-        decimal Total,
-        DateTimeOffset CreatedAt,
-        DateTimeOffset? UpdatedAt);
-
-    private sealed record CreateOrUpdateOrderRequest(IReadOnlyCollection<int> ItemIds);
 }

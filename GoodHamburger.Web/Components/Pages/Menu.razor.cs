@@ -1,5 +1,6 @@
 using System.Globalization;
 using GoodHamburger.Web.Integration;
+using GoodHamburger.Web.Integration.Models;
 using Microsoft.AspNetCore.Components;
 
 namespace GoodHamburger.Web.Components.Pages;
@@ -11,7 +12,7 @@ public partial class Menu : ComponentBase
     private readonly MenuState _state = new();
     private bool _isBusy => _state.IsBusy;
     private string? _errorMessage => _state.ErrorMessage;
-    private IReadOnlyCollection<GoodHamburgerApiClient.MenuItemResponse> _items => _state.Items;
+    private IReadOnlyCollection<MenuItemResponse> _items => _state.Items;
 
     protected override async Task OnInitializedAsync()
     {

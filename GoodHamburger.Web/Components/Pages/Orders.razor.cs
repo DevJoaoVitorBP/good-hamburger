@@ -1,5 +1,6 @@
 using System.Globalization;
 using GoodHamburger.Web.Integration;
+using GoodHamburger.Web.Integration.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -14,8 +15,8 @@ public partial class Orders : ComponentBase
     private bool _isBusy => _state.IsBusy;
     private string? _errorMessage => _state.ErrorMessage;
     private string? _successMessage => _state.SuccessMessage;
-    private IReadOnlyCollection<GoodHamburgerApiClient.MenuItemResponse> _menuItems => _state.MenuItems;
-    private IReadOnlyCollection<GoodHamburgerApiClient.OrderResponse> _orders => _state.Orders;
+    private IReadOnlyCollection<MenuItemResponse> _menuItems => _state.MenuItems;
+    private IReadOnlyCollection<OrderResponse> _orders => _state.Orders;
     private HashSet<int> _createItemIds => _state.CreateItemIds;
     private HashSet<int> _updateItemIds => _state.UpdateItemIds;
     private int _updateOrderId
@@ -78,7 +79,7 @@ public partial class Orders : ComponentBase
 
         await ExecuteAsync(async () =>
         {
-            GoodHamburgerApiClient.OrderResponse newOrder = await ApiClient.CreateOrderAsync(_state.CreateItemIds.ToList());
+            OrderResponse newOrder = await ApiClient.CreateOrderAsync(_state.CreateItemIds.ToList());
             _state.CreateItemIds.Clear();
 
             if (newOrder != null)
@@ -98,7 +99,7 @@ public partial class Orders : ComponentBase
 
         await ExecuteAsync(async () =>
         {
-            GoodHamburgerApiClient.OrderResponse? order = await ApiClient.GetOrderByIdAsync(_state.UpdateOrderId);
+            OrderResponse? order = await ApiClient.GetOrderByIdAsync(_state.UpdateOrderId);
             if (order is null)
             {
                 _state.SetError("Order not found.");
@@ -144,7 +145,7 @@ public partial class Orders : ComponentBase
         });
     }
 
-    private void StartEdit(GoodHamburgerApiClient.OrderResponse order)
+    private void StartEdit(OrderResponse order)
     {
         _state.UpdateOrderId = order.Id;
         _state.UpdateItemIds = order.Items.Select(i => i.Id).ToHashSet();

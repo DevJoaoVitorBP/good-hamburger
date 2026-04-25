@@ -1,4 +1,4 @@
-using GoodHamburger.Web.Integration;
+using GoodHamburger.Web.Integration.Models;
 
 namespace GoodHamburger.Web.Components.Pages;
 
@@ -8,11 +8,11 @@ public class OrdersState
     public string? ErrorMessage { get; private set; }
     public string? SuccessMessage { get; private set; }
 
-    public IReadOnlyCollection<GoodHamburgerApiClient.MenuItemResponse> MenuItems { get; set; }
-        = Array.Empty<GoodHamburgerApiClient.MenuItemResponse>();
+    public IReadOnlyCollection<MenuItemResponse> MenuItems { get; set; }
+        = Array.Empty<MenuItemResponse>();
 
-    public IReadOnlyCollection<GoodHamburgerApiClient.OrderResponse> Orders { get; set; }
-        = Array.Empty<GoodHamburgerApiClient.OrderResponse>();
+    public IReadOnlyCollection<OrderResponse> Orders { get; set; }
+        = Array.Empty<OrderResponse>();
 
     public HashSet<int> CreateItemIds { get; set; } = new();
     public HashSet<int> UpdateItemIds { get; set; } = new();
