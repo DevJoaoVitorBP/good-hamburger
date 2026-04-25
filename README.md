@@ -22,7 +22,7 @@ The solution implements:
 - `GoodHamburger.Domain` → entities and enums
 - `GoodHamburger.Infrastructure` → in-memory repository and static menu catalog
 - `GoodHamburger.Web` → Blazor frontend
-- `GoodHamburguer.Test` → business rule automated tests
+- `GoodHamburger.Test` → business rule automated tests
 - `GoodHamburger.API.IntegrationTests` → API integration tests for REST endpoints
 
 ## Business Rules
@@ -135,7 +135,7 @@ Default Web URL (launch profile):
 ## Run Tests
 
 ```powershell
-dotnet test GoodHamburguer.Test/GoodHamburguer.Test.csproj
+dotnet test GoodHamburger.Test/GoodHamburger.Test.csproj
 dotnet test GoodHamburger.API.IntegrationTests/GoodHamburger.API.IntegrationTests.csproj
 ```
 
@@ -147,7 +147,7 @@ Pipeline steps:
 
 - Restore
 - Build
-- Test (`GoodHamburguer.Test`) with TRX output
+- Test (`GoodHamburger.Test`) with TRX output
 - Test (`GoodHamburger.API.IntegrationTests`) with TRX output
 - Collect code coverage (`XPlat Code Coverage`)
 - Upload `TestResults` as workflow artifact
