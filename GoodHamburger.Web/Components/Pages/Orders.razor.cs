@@ -10,197 +10,202 @@ public partial class Orders : ComponentBase
     [Inject] private GoodHamburgerApiClient ApiClient { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
-    private bool _isBusy;
-    private string? _errorMessage;
-    private string? _successMessage;
-
-    private IReadOnlyCollection<GoodHamburgerApiClient.MenuItemResponse> _menuItems = [];
-    private IReadOnlyCollection<GoodHamburgerApiClient.OrderResponse> _orders = [];
-    private readonly HashSet<int> _createItemIds = [];
-    private readonly HashSet<int> _updateItemIds = [];
-    private int _updateOrderId;
+    private readonly OrdersState _state = new();
+    private bool _isBusy => _state.IsBusy;
+    private string? _errorMessage => _state.ErrorMessage;
+    private string? _successMessage => _state.SuccessMessage;
+    private IReadOnlyCollection<GoodHamburgerApiClient.MenuItemResponse> _menuItems => _state.MenuItems;
+    private IReadOnlyCollection<GoodHamburgerApiClient.OrderResponse> _orders => _state.Orders;
+    private HashSet<int> _createItemIds => _state.CreateItemIds;
+    private HashSet<int> _updateItemIds => _state.UpdateItemIds;
+    private int _updateOrderId
+    {
+        get => _state.UpdateOrderId;
+        set => _state.UpdateOrderId = value;
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDataAsync();
+        await ExecuteAsync(LoadDataAsync);
     }
 
     private async Task LoadDataAsync()
     {
-        await RunBusyOperationAsync(async () =>
-        {
-            _menuItems = await ApiClient.GetMenuAsync();
-            _orders = await ApiClient.GetOrdersAsync();
-        });
+        _state.MenuItems = await ApiClient.GetMenuAsync();
+        _state.Orders = await ApiClient.GetOrdersAsync();
+    }
+
+    private void ToggleCreateSelection(int itemId, bool selected)
+    {
+        ToggleSelection(_state.CreateItemIds, itemId, selected);
     }
 
     private void ToggleCreateSelection(int itemId, ChangeEventArgs args)
     {
-        ToggleSelection(_createItemIds, itemId, args);
+        ToggleCreateSelection(itemId, ParseCheckboxValue(args));
+    }
+
+    private void ToggleUpdateSelection(int itemId, bool selected)
+    {
+        ToggleSelection(_state.UpdateItemIds, itemId, selected);
     }
 
     private void ToggleUpdateSelection(int itemId, ChangeEventArgs args)
     {
-        ToggleSelection(_updateItemIds, itemId, args);
+        ToggleUpdateSelection(itemId, ParseCheckboxValue(args));
     }
 
-    private static void ToggleSelection(HashSet<int> target, int itemId, ChangeEventArgs args)
+    private static bool ParseCheckboxValue(ChangeEventArgs args)
     {
-        bool selected = args.Value is true || (args.Value is string value && bool.TryParse(value, out bool parsed) && parsed);
+        return args.Value is true || (args.Value is string value && bool.TryParse(value, out bool parsed) && parsed);
+    }
 
+    private static void ToggleSelection(HashSet<int> target, int itemId, bool selected)
+    {
         if (selected)
-        {
             target.Add(itemId);
-            return;
-        }
-
-        target.Remove(itemId);
+        else
+            target.Remove(itemId);
     }
 
     private async Task CreateOrderAsync()
     {
-        await RunBusyOperationAsync(async () =>
+        if (_state.CreateItemIds.Count == 0)
         {
-            await ApiClient.CreateOrderAsync(_createItemIds.ToList());
-            _createItemIds.Clear();
-            _successMessage = "Order created successfully.";
-            _orders = await ApiClient.GetOrdersAsync();
+            _state.SetError("Select at least one item.");
+            return;
+        }
+
+        await ExecuteAsync(async () =>
+        {
+            GoodHamburgerApiClient.OrderResponse newOrder = await ApiClient.CreateOrderAsync(_state.CreateItemIds.ToList());
+            _state.CreateItemIds.Clear();
+
+            if (newOrder != null)
+                _state.Orders = _state.Orders.Append(newOrder).ToList();
+
+            _state.SetSuccess("Order created successfully.");
         });
     }
 
     private async Task LoadOrderForEditAsync()
     {
-        if (_updateOrderId <= 0)
+        if (_state.UpdateOrderId <= 0)
         {
-            _errorMessage = "Please enter a valid order ID.";
+            _state.SetError("Invalid order ID.");
             return;
         }
 
-        await RunBusyOperationAsync(async () =>
+        await ExecuteAsync(async () =>
         {
-            GoodHamburgerApiClient.OrderResponse? order = await ApiClient.GetOrderByIdAsync(_updateOrderId);
+            GoodHamburgerApiClient.OrderResponse? order = await ApiClient.GetOrderByIdAsync(_state.UpdateOrderId);
             if (order is null)
             {
-                _errorMessage = "We could not find an order with this ID.";
+                _state.SetError("Order not found.");
                 return;
             }
 
-            _updateItemIds.Clear();
-            foreach (GoodHamburgerApiClient.OrderItemResponse item in order.Items)
-            {
-                _updateItemIds.Add(item.Id);
-            }
-
-            _successMessage = $"Order {_updateOrderId} loaded.";
+            _state.UpdateItemIds = order.Items.Select(i => i.Id).ToHashSet();
+            _state.SetSuccess($"Order {order.Id} loaded.");
         });
     }
 
     private async Task UpdateOrderAsync()
     {
-        if (_updateOrderId <= 0)
+        if (_state.UpdateOrderId <= 0)
         {
-            _errorMessage = "Please enter a valid order ID.";
+            _state.SetError("Invalid order ID.");
             return;
         }
 
-        if (_updateItemIds.Count == 0)
+        if (_state.UpdateItemIds.Count == 0)
         {
-            _errorMessage = "Please select at least one item before updating the order.";
+            _state.SetError("Select at least one item.");
             return;
         }
 
-        await RunBusyOperationAsync(async () =>
+        await ExecuteAsync(async () =>
         {
-            await ApiClient.UpdateOrderAsync(_updateOrderId, _updateItemIds.ToList());
-            _successMessage = "Order updated successfully.";
-            _orders = await ApiClient.GetOrdersAsync();
+            await ApiClient.UpdateOrderAsync(_state.UpdateOrderId, _state.UpdateItemIds.ToList());
+
+            var index = _state.Orders.ToList().FindIndex(o => o.Id == _state.UpdateOrderId);
+            if (index >= 0)
+            {
+                var updated = await ApiClient.GetOrderByIdAsync(_state.UpdateOrderId);
+                if (updated != null)
+                {
+                    var list = _state.Orders.ToList();
+                    list[index] = updated;
+                    _state.Orders = list;
+                }
+            }
+
+            _state.SetSuccess("Order updated successfully.");
         });
     }
 
     private void StartEdit(GoodHamburgerApiClient.OrderResponse order)
     {
-        _updateOrderId = order.Id;
-        _updateItemIds.Clear();
-
-        foreach (GoodHamburgerApiClient.OrderItemResponse item in order.Items)
-        {
-            _updateItemIds.Add(item.Id);
-        }
-
-        _errorMessage = null;
-        _successMessage = $"Order {order.Id} selected for edit.";
+        _state.UpdateOrderId = order.Id;
+        _state.UpdateItemIds = order.Items.Select(i => i.Id).ToHashSet();
+        _state.SetSuccess($"Order {order.Id} selected.");
     }
 
     private async Task DeleteOrderAsync(int orderId)
     {
-        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete order #{orderId}?");
-        if (!confirmed)
-        {
-            return;
-        }
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Delete order #{orderId}?");
+        if (!confirmed) return;
 
-        await RunBusyOperationAsync(async () =>
+        await ExecuteAsync(async () =>
         {
             await ApiClient.DeleteOrderAsync(orderId);
-            _successMessage = "Order deleted successfully.";
-            _orders = await ApiClient.GetOrdersAsync();
+            _state.Orders = _state.Orders.Where(o => o.Id != orderId).ToList();
+            _state.SetSuccess("Order deleted.");
         });
     }
 
-    private async Task RunBusyOperationAsync(Func<Task> operation)
+    private async Task ExecuteAsync(Func<Task> action)
     {
-        _isBusy = true;
-        _errorMessage = null;
-        _successMessage = null;
+        _state.IsBusy = true;
+        _state.ClearMessages();
 
         try
         {
-            await operation();
+            await action();
         }
-        catch (Exception exception)
+        catch (Exception ex)
         {
-            _errorMessage = ToFriendlyErrorMessage(exception);
+            _state.SetError(MapError(ex));
         }
         finally
         {
-            _isBusy = false;
+            _state.IsBusy = false;
+            StateHasChanged();
         }
+    }
+
+    private static string MapError(Exception ex)
+    {
+        string msg = ex.Message.ToLower();
+
+        if (msg.Contains("not found"))
+            return "Resource not found.";
+
+        if (msg.Contains("duplicate"))
+            return "Duplicate items are not allowed.";
+
+        if (msg.Contains("exactly one sandwich"))
+            return "Order must contain exactly one sandwich.";
+
+        return "Unexpected error occurred.";
     }
 
     private static string FormatCurrency(decimal value)
-    {
-        return value.ToString("C", new CultureInfo("pt-BR"));
-    }
+        => value.ToString("C", new CultureInfo("pt-BR"));
 
     private static string FormatDateTime(DateTimeOffset value)
-    {
-        return value.LocalDateTime.ToString("dd/MM/yyyy HH:mm");
-    }
+        => value.LocalDateTime.ToString("dd/MM/yyyy HH:mm");
 
     private static string FormatNullableDateTime(DateTimeOffset? value)
-    {
-        return value.HasValue ? FormatDateTime(value.Value) : "-";
-    }
-
-    private static string ToFriendlyErrorMessage(Exception exception)
-    {
-        string message = exception.Message;
-
-        if (message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return "We could not find the requested resource. Please check the ID and try again.";
-        }
-
-        if (message.Contains("duplicate", StringComparison.OrdinalIgnoreCase))
-        {
-            return "You selected duplicated items. Please keep only one of each item.";
-        }
-
-        if (message.Contains("exactly one sandwich", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Your order must contain exactly one sandwich.";
-        }
-
-        return "Something went wrong while processing your request. Please try again.";
-    }
+        => value.HasValue ? FormatDateTime(value.Value) : "-";
 }

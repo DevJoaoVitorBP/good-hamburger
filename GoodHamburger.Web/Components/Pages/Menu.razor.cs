@@ -8,9 +8,10 @@ public partial class Menu : ComponentBase
 {
     [Inject] private GoodHamburgerApiClient ApiClient { get; set; } = default!;
 
-    private bool _isBusy;
-    private string? _errorMessage;
-    private IReadOnlyCollection<GoodHamburgerApiClient.MenuItemResponse> _items = [];
+    private readonly MenuState _state = new();
+    private bool _isBusy => _state.IsBusy;
+    private string? _errorMessage => _state.ErrorMessage;
+    private IReadOnlyCollection<GoodHamburgerApiClient.MenuItemResponse> _items => _state.Items;
 
     protected override async Task OnInitializedAsync()
     {
@@ -19,20 +20,20 @@ public partial class Menu : ComponentBase
 
     private async Task LoadMenuAsync()
     {
-        _isBusy = true;
-        _errorMessage = null;
+        _state.IsBusy = true;
+        _state.ClearError();
 
         try
         {
-            _items = await ApiClient.GetMenuAsync();
+            _state.Items = await ApiClient.GetMenuAsync();
         }
         catch
         {
-            _errorMessage = "Unable to load the menu at the moment. Please try again.";
+            _state.SetError("Unable to load the menu at the moment. Please try again.");
         }
         finally
         {
-            _isBusy = false;
+            _state.IsBusy = false;
         }
     }
 
