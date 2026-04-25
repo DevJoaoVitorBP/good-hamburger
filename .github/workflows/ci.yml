@@ -43,7 +43,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          dotnet test GoodHamburguer.Test/GoodHamburguer.Test.csproj \
+          dotnet test GoodHamburger.Test/GoodHamburger.Test.csproj \
             --configuration Release \
             --verbosity normal \
             --logger "trx;LogFileName=unit-tests.trx" \
