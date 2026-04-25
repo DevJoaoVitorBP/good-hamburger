@@ -42,12 +42,13 @@ jobs:
         run: dotnet restore
 
       - name: Run unit tests
-        run: dotnet test GoodHamburguer.Test/GoodHamburguer.Test.csproj \
-             --configuration Release \
-             --verbosity normal \
-             --logger "trx;LogFileName=unit-tests.trx" \
-             --results-directory TestResults \
-             --collect:"XPlat Code Coverage"
+        run: |
+          dotnet test GoodHamburguer.Test/GoodHamburguer.Test.csproj \
+            --configuration Release \
+            --verbosity normal \
+            --logger "trx;LogFileName=unit-tests.trx" \
+            --results-directory TestResults \
+            --collect:"XPlat Code Coverage"
 
       - name: Upload unit test results
         if: always()
@@ -73,12 +74,13 @@ jobs:
         run: dotnet restore
 
       - name: Run integration tests
-        run: dotnet test GoodHamburger.API.IntegrationTests/GoodHamburger.API.IntegrationTests.csproj \
-             --configuration Release \
-             --verbosity normal \
-             --logger "trx;LogFileName=integration-tests.trx" \
-             --results-directory TestResults \
-             --collect:"XPlat Code Coverage"
+        run: |
+          dotnet test GoodHamburger.API.IntegrationTests/GoodHamburger.API.IntegrationTests.csproj \
+            --configuration Release \
+            --verbosity normal \
+            --logger "trx;LogFileName=integration-tests.trx" \
+            --results-directory TestResults \
+            --collect:"XPlat Code Coverage"
 
       - name: Upload integration test results
         if: always()
