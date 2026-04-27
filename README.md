@@ -238,13 +238,13 @@ The Web application includes middleware protection against path traversal attemp
 From workspace root:
 
 ```powershell
-dotnet run --project GoodHamburger.API/GoodHamburger.API.csproj
+dotnet run --project GoodHamburger.API/GoodHamburger.API.csproj --launch-profile https
 ```
 
 Default API URL (launch profile):
 
-- `https://localhost:7228`
 - `http://localhost:5008`
+- `https://localhost:7228`
 
 Swagger:
 
@@ -258,8 +258,8 @@ dotnet run --project GoodHamburger.Web/GoodHamburger.Web.csproj
 
 Default Web URL (launch profile):
 
-- `https://localhost:7002`
 - `http://localhost:5216`
+- `https://localhost:7002`
 
 ### 3) Configure frontend API URL
 
