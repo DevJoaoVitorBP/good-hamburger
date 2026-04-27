@@ -226,6 +226,14 @@ The Web application includes middleware protection against path traversal attemp
 - When detected, the request is blocked and redirected to Home (`/`).
 - The validation is implemented in `GoodHamburger.Web/Program.cs`.
 
+## Getting the code
+
+Clone the repository:
+
+```bash
+git clone https://github.com/DevJoaoVitorBP/good-hamburger.git
+```
+
 ## Running Locally
 
 ## Prerequisites
