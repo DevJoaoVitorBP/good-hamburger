@@ -15,6 +15,15 @@ The solution implements:
 - GitHub Actions CI pipeline
 - Structured logging with correlation ID support
 
+## Screenshots
+
+### Blazor Web
+![Blazor Home](Docs/Images/web-menu.png)
+![Create Order](Docs/Images/web-orders.png)
+
+### API (Swagger)
+![Swagger](Docs/Images/swagger-endpoints.png)
+
 ## Architecture
 
 The solution follows a layered architecture (Clean Architecture inspired):
